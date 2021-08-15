@@ -82,8 +82,7 @@ class CircuitBreaker:
         return response
 
 
-account_service = Service("Account Service", "account-service", 5000)
-book_service = Service("Book Service", "book-service", 1000)
+account_service = Service("Account Service", "localhost", 5000)
 circuit_breaker = CircuitBreaker(10000, 3)
 
 
@@ -171,85 +170,6 @@ def update_profile(username):
     modify_user_url = f"/modify_user/{username}"
     json = request.json
     response = circuit_breaker.send_request(account_service, requests.put, modify_user_url, json=json)
-    return as_response(response)
-
-
-@app.route('/show_clients', methods=['GET'])
-@token_required
-def show_clients(username):
-    get_user_url = f"/get_user/{username}"
-    response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
-    if response.status_code != HTTPStatus.OK:
-        return as_response(response)
-
-    found_user = response.json()['user']
-    if not found_user['isAdmin']:
-        return jsonify(message="Only admins can view clients list."), HTTPStatus.FORBIDDEN
-
-    get_clients_url = "/show_clients"
-    response = circuit_breaker.send_request(account_service, requests.get, get_clients_url)
-    return as_response(response)
-
-
-@app.route('/books', methods=['GET'])
-@token_required
-def show_books(username):
-    get_books_url = "/books/q"
-    response = circuit_breaker.send_request(book_service, requests.get, get_books_url, params=request.args)
-    return as_response(response)
-
-
-@app.route('/books/create', methods=['POST'])
-@token_required
-def create_book(username):
-    get_user_url = f"/get_user/{username}"
-    response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
-    if response.status_code != HTTPStatus.OK:
-        return as_response(response)
-
-    found_user = response.json()['user']
-    if not found_user['isAdmin']:
-        return jsonify(message="Only admins can create books."), HTTPStatus.FORBIDDEN
-
-    create_book_url = "/books/create"
-    json = request.json
-    json['admin'] = username
-    response = circuit_breaker.send_request(book_service, requests.post, create_book_url, json=json)
-    return as_response(response)
-
-
-@app.route('/books/delete/<int:book_id>', methods=['PUT'])
-@token_required
-def delete_book(username, book_id):
-    get_user_url = f"/get_user/{username}"
-    response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
-    if response.status_code != HTTPStatus.OK:
-        return as_response(response)
-
-    found_user = response.json()['user']
-    if not found_user['isAdmin']:
-        return jsonify(message="Only admins can delete books."), HTTPStatus.FORBIDDEN
-    json = {'admin': username}
-    delete_book_url = f"/books/delete/{book_id}"
-    response = circuit_breaker.send_request(book_service, requests.put, delete_book_url, json=json)
-    return as_response(response)
-
-
-@app.route('/books/update/<int:book_id>', methods=['PUT'])
-@token_required
-def update_book(username, book_id):
-    get_user_url = f"/get_user/{username}"
-    response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
-    if response.status_code != HTTPStatus.OK:
-        return as_response(response)
-
-    found_user = response.json()['user']
-    if not found_user['isAdmin']:
-        return jsonify(message="Only admins can update book info."), HTTPStatus.FORBIDDEN
-    json = request.json
-    json['admin'] = username
-    update_book_url = f"/books/update/{book_id}"
-    response = circuit_breaker.send_request(book_service, requests.put, update_book_url, json=json)
     return as_response(response)
 
 
