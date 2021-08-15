@@ -1,9 +1,9 @@
 swagger: "2.0"
 info:
-  description: This is a microservice that is the users' gateway to other microservices.
+  description: "This is a microservice that creates, modifies, and retrieves user accounts"
   version: "1.0.0"
-  title: "API Gateway"
-host: "127.0.0.1:80"
+  title: "Account Service"
+host: "127.0.0.1:5000"
 basePath: "/"
 tags:
 - name: "user"
@@ -11,11 +11,11 @@ tags:
 schemes:
 - "http"
 paths:
-  /signup:
+  /create_user:
     post:
       tags:
       - "user"
-      summary: "Sign new users up"
+      summary: Create new users
       consumes:
       - "application/json"
       produces:
@@ -25,22 +25,7 @@ paths:
         name: "body"
         required: true
         schema:
-          type: object
-          required:
-            - username
-            - password
-            - isAdmin
-          properties:
-            username:
-              type: string
-            password:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            isAdmin:
-              type: boolean
+          $ref: "#/definitions/User"
       responses:
         "201":
           description: "Created"
@@ -48,69 +33,15 @@ paths:
             type: "object"
             properties:
               message:
-                type: string
-        '400':
-          description: 'Bad request'
-          schema:
-            type: "object"
-            properties:
-              message:
-                type: string
+                type: "string"
         "409":
           description: "User already exists"
           schema:
             type: "object"
             properties:
               message:
-                type: string
-  /login:
-    post:
-      tags:
-      - "user"
-      summary: "Login for users"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        required: true
-        schema:
-          type: object
-          required:
-            - username
-            - password
-          properties:
-            username:
-              type: string
-            password:
-              type: string
-      responses:
-        "200":
-          description: "Ok"
-          schema:
-            type: "object"
-            properties:
-              message:
-                type: string
-              token:
-                type: string
-        '400':
-          description: 'Bad request'
-          schema:
-            type: "object"
-            properties:
-              message:
-                type: string
-        "401":
-          description: 'Unauthorized'
-          schema:
-            type: "object"
-            properties:
-              message:
-                type: string
-  /show_profile/{username}:
+                type: "string"
+  /get_user/{username}:
     get:
       tags:
       - "user"
@@ -118,31 +49,20 @@ paths:
       produces:
       - "application/json"
       parameters:
-        - in: path
-          name: username
-          type: string
-          required: true
+      - in: path
+        name: username
+        type: string
+        required: true
       responses:
         "200":
           description: "Ok"
           schema:
             type: "object"
             properties:
-              username:
-                type: string
-              email:
-                type: string
-              phone:
-                type: string
-              isAdmin:
-                type: boolean
-        "401":
-          description: 'Unauthorized'
-          schema:
-            type: "object"
-            properties:
               message:
-                type: string
+                type: "string"
+              user:
+                $ref: "#/definitions/User"
         "404":
           description: "User not found"
           schema:
@@ -150,10 +70,8 @@ paths:
             properties:
               message:
                 type: "string"
-      security:
-        - Bearer: []
-  /update_profile/{username}:
-    post:
+  /modify_user/{username}:
+    put:
       tags:
       - "user"
       summary: "Modify user information"
@@ -163,25 +81,14 @@ paths:
       - "application/json"
       parameters:
       - in: path
-        name: 'username'
+        name: username
         type: string
         required: true
       - in: "body"
         name: "body"
         required: True
         schema:
-          type: "object"
-          properties:
-            username:
-              type: string
-            password:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            isAdmin:
-              type: boolean
+          $ref: "#/definitions/User"
       responses:
         "200":
           description: "Successful update"
@@ -197,13 +104,6 @@ paths:
             properties:
               message:
                 type: "string"
-        "401":
-          description: 'Unauthorized'
-          schema:
-            type: "object"
-            properties:
-              message:
-                type: string
         "404":
           description: "User not found"
           schema:
@@ -211,10 +111,23 @@ paths:
             properties:
               message:
                 type: "string"
-      security:
-        - Bearer: []
-securityDefinitions:
-  Bearer:
-    type: apiKey
-    name: Authorization
-    in: header
+definitions:
+  User:
+    type: "object"
+    required:
+      - username
+      - hashed_passwd
+      - isAdmin
+    properties:
+      username:
+        type: "string"
+      hashed_passwd:
+        type: "string"
+      email:
+        type: "string"
+      phone:
+        type: "string"
+      isAdmin:
+        type: "boolean"
+    xml:
+      name: "User"
