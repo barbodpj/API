@@ -1,0 +1,20 @@
+version: "3"
+services:
+  account:
+    image: account:latest
+    ports:
+      - 5000:5000
+  blog:
+    image: blog:latest
+    ports:
+      - 5001:5001
+  api:
+    image: api:latest
+    ports:
+      - 80:80
+    environment:
+      ACCOUNT_SERVICE_URL: account
+      BLOG_SERVICE_URL: blog
+    depends_on:
+      - account
+      - blog
