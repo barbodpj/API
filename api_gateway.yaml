@@ -6,41 +6,41 @@ info:
 host: "127.0.0.1:80"
 basePath: "/"
 tags:
-- name: "user"
-  description: "Operations on users"
+  - name: "user"
+    description: "Operations on users"
 schemes:
-- "http"
+  - "http"
 paths:
   /signup:
     post:
       tags:
-      - "user"
+        - "user"
       summary: "Sign new users up"
       consumes:
-      - "application/json"
+        - "application/json"
       produces:
-      - "application/json"
+        - "application/json"
       parameters:
-      - in: "body"
-        name: "body"
-        required: true
-        schema:
-          type: object
-          required:
-            - username
-            - password
-            - isAdmin
-          properties:
-            username:
-              type: string
-            password:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            isAdmin:
-              type: boolean
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            type: object
+            required:
+              - username
+              - password
+              - isAdmin
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+              email:
+                type: string
+              phone:
+                type: string
+              isAdmin:
+                type: boolean
       responses:
         "201":
           description: "Created"
@@ -66,26 +66,26 @@ paths:
   /login:
     post:
       tags:
-      - "user"
+        - "user"
       summary: "Login for users"
       consumes:
-      - "application/json"
+        - "application/json"
       produces:
-      - "application/json"
+        - "application/json"
       parameters:
-      - in: "body"
-        name: "body"
-        required: true
-        schema:
-          type: object
-          required:
-            - username
-            - password
-          properties:
-            username:
-              type: string
-            password:
-              type: string
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            type: object
+            required:
+              - username
+              - password
+            properties:
+              username:
+                type: string
+              password:
+                type: string
       responses:
         "200":
           description: "Ok"
@@ -113,10 +113,10 @@ paths:
   /show_profile/{username}:
     get:
       tags:
-      - "user"
-      summary: "Return user information"
+        - "user"
+      summary: "Return user information + posts"
       produces:
-      - "application/json"
+        - "application/json"
       parameters:
         - in: path
           name: username
@@ -128,6 +128,19 @@ paths:
           schema:
             type: "object"
             properties:
+              posts:
+                type: "array"
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    username:
+                      type: string
+                    title:
+                      type: string
+                    body:
+                      type: string
               username:
                 type: string
               email:
@@ -151,37 +164,37 @@ paths:
               message:
                 type: "string"
       security:
-        - Bearer: []
+        - Bearer: [ ]
   /update_profile/{username}:
     post:
       tags:
-      - "user"
+        - "user"
       summary: "Modify user information"
       consumes:
-      - "application/json"
+        - "application/json"
       produces:
-      - "application/json"
+        - "application/json"
       parameters:
-      - in: path
-        name: 'username'
-        type: string
-        required: true
-      - in: "body"
-        name: "body"
-        required: True
-        schema:
-          type: "object"
-          properties:
-            username:
-              type: string
-            password:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            isAdmin:
-              type: boolean
+        - in: path
+          name: 'username'
+          type: string
+          required: true
+        - in: "body"
+          name: "body"
+          required: True
+          schema:
+            type: "object"
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+              email:
+                type: string
+              phone:
+                type: string
+              isAdmin:
+                type: boolean
       responses:
         "200":
           description: "Successful update"
@@ -212,7 +225,79 @@ paths:
               message:
                 type: "string"
       security:
-        - Bearer: []
+        - Bearer: [ ]
+  /posts:
+    post:
+      tags:
+        - "post"
+      summary: "Create new post (only for normal users)"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: True
+          schema:
+            type: "object"
+            properties:
+              title:
+                type: string
+              body:
+                type: string
+      responses:
+        "200":
+          description: "Successful update"
+    security:
+      - Bearer: [ ]
+  /posts/{post_id}:
+    delete:
+      tags:
+        - "post"
+      summary: "Delete a post"
+      produces:
+        - "application/json"
+      parameters:
+        - in: path
+          name: post_id
+          type: integer
+          required: true
+      responses:
+        "204":
+          description: "Deleted"
+          schema:
+            type: "object"
+        "404":
+          description: "User not found"
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+  /explore:
+    get:
+      tags:
+        - "post"
+      summary: "View timeline (all posts + user info)"
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Successful fetch"
+          schema:
+            type: "array"
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                username:
+                  type: string
+                title:
+                  type: string
+                body:
+                  type: string
 securityDefinitions:
   Bearer:
     type: apiKey

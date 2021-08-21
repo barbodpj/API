@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request
 import requests
 import datetime
@@ -10,6 +12,15 @@ from requests.models import Response
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '2b01ddd83c7b5778cb05d8f66d94c727'
+
+
+def get_user(username):
+    get_user_url = f"/get_user/{username}"
+    response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
+
+    if response.status_code != HTTPStatus.OK:
+        return None
+    return response.json()['user']
 
 
 class Service:
@@ -55,7 +66,6 @@ class CircuitBreaker:
                 return response
         else:
             stats = self.services[service.id] = ServiceStatus()
-        response = Response()
         try:
             stats.last_time = datetime.datetime.now()
             response = func(service.url + url, timeout=0.5, *args, **kwargs)
@@ -82,7 +92,8 @@ class CircuitBreaker:
         return response
 
 
-account_service = Service("Account Service", "localhost", 5000)
+account_service = Service("Account Service", os.getenv("ACCOUNT_SERVICE_URL"), 5000)
+blog_service = Service("Blog Service", os.getenv("BLOG_SERVICE_URL"), 5001)
 circuit_breaker = CircuitBreaker(10000, 3)
 
 
@@ -149,19 +160,24 @@ def login():
     return jsonify(message='Invalid Password'), HTTPStatus.UNAUTHORIZED
 
 
-@app.route('/show_profile', methods=['GET'])
-@token_required
+@app.route('/show_profile/<username>', methods=['GET'])
 def show_profile(username):
     get_user_url = f"/get_user/{username}"
     response = circuit_breaker.send_request(account_service, requests.get, get_user_url)
 
     if response.status_code != HTTPStatus.OK:
         return as_response(response)
-
     found_user = response.json()['user']
     found_user.pop('hashed_passwd')
 
-    return jsonify(user=found_user), HTTPStatus.OK
+    get_posts_url = "/user_posts"
+    response = circuit_breaker.send_request(blog_service, requests.get, get_posts_url, headers={"username": username})
+    if response.status_code != HTTPStatus.OK:
+        return as_response(response)
+
+    posts = response.json()['posts']
+
+    return jsonify(user=found_user, posts=posts), HTTPStatus.OK
 
 
 @app.route('/update_profile', methods=['POST'])
@@ -173,5 +189,37 @@ def update_profile(username):
     return as_response(response)
 
 
+@app.route('/posts', methods=['POST'])
+@token_required
+def add_post(username):
+    add_post_url = f"/posts"
+    user = get_user(username)
+    if not user:
+        return jsonify(message='Invalid username'), HTTPStatus.NOT_FOUND
+    headers = {"username": username, "isAdmin": str(user["isAdmin"])}
+    json = request.json
+    response = circuit_breaker.send_request(blog_service, requests.post, add_post_url, json=json, headers=headers)
+    return as_response(response)
+
+
+@app.route('/posts/<post_id>', methods=['DELETE'])
+@token_required
+def delete_post(username, post_id):
+    delete_post_url = f"/posts/{post_id}"
+    user = get_user(username)
+    if not user:
+        return jsonify(message='Invalid username'), HTTPStatus.NOT_FOUND
+    headers = {"username": username, "isAdmin": str(user["isAdmin"])}
+    response = circuit_breaker.send_request(blog_service, requests.delete, delete_post_url, headers=headers)
+    return as_response(response)
+
+
+@app.route('/explore', methods=['GET'])
+def explore():
+    all_posts_url = f"/all_posts"
+    response = circuit_breaker.send_request(blog_service, requests.get, all_posts_url)
+    return {"posts": response.json()["posts"]}, HTTPStatus.OK
+
+
 if __name__ == '__main__':
-    app.run(port=80, debug=True)
+    app.run(port=80, debug=True, host='0.0.0.0')
